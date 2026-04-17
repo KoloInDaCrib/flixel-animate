@@ -97,7 +97,8 @@ class FilterRenderer
 
 		var masked:Null<BitmapData> = renderToBitmap((cam, mat) ->
 		{
-			frame._drawElements(cam, currentFrame, mat, null, NORMAL, true, null);
+			cam.pixelPerfectRender = false;
+			frame._drawElements(cam, currentFrame, mat);
 			cam.view.render();
 			if (cam.canvas?.graphics?.__bounds != null)
 				cam.canvas.graphics.__bounds = maskedBounds.copyToFlash(new Rectangle());
@@ -110,7 +111,7 @@ class FilterRenderer
 
 		var masker:Null<BitmapData> = renderToBitmap((cam, mat) ->
 		{
-			maskerFrame._drawElements(cam, currentFrame, mat, null, NORMAL, true, null);
+			maskerFrame._drawElements(cam, currentFrame, mat);
 			cam.view.render();
 			if (cam.canvas?.graphics?.__bounds != null)
 				cam.canvas.graphics.__bounds = maskerBounds.copyToFlash(new Rectangle());
