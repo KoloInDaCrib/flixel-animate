@@ -101,18 +101,15 @@ class RenderTexture implements IFlxDestroyable
 	 * Initializes the render texture internal data to be used for rendering.
 	 * This function **MUST** be called before using ``RenderTexture.render`` if you plan on dynamically
 	 * changing the size of the texture from it's initial resolution.
-	 * 
+	 *
 	 * @param width New width of the texture.
 	 * @param height New height of the texture.
-	 * 
+	 *
 	 */
 	public function init(width:Int, height:Int):Void
 	{
-		_camera.clearDrawStack();
-		_camera.canvas.graphics.clear();
-		#if FLX_DEBUG
-		_camera.debugLayer.graphics.clear();
-		#end
+		_camera.view.clear();
+
 		_camera.width = width;
 		_camera.height = height;
 
@@ -124,9 +121,9 @@ class RenderTexture implements IFlxDestroyable
 	/**
 	 * Provides a way to add custom draw contents onto the internal camera of the texture.
 	 * Used a custom callback which supplies the ``FlxCamera`` to render to and a usable helper identity ``FlxMatrix``.
-	 * 
+	 *
 	 * @param drawCallback Custom callback with the internal ``FlxCamera`` and helper ``FlxMatrix``.
-	 * 
+	 *
 	 */
 	public function drawToCamera(drawCallback:FlxCamera->FlxMatrix->Void):Void
 	{
@@ -139,38 +136,45 @@ class RenderTexture implements IFlxDestroyable
 	 */
 	public function render():Void
 	{
-		_camera.render();
-		_camera.canvas.__update(false, true);
-
-		_renderer.__cleanup();
-
-		_renderer.setShader(_renderer.__defaultShader);
-		_renderer.__allowSmoothing = antialiasing;
-		_renderer.__pixelRatio = #if openfl_disable_hdpi 1 #else Lib.current.stage.window.scale #end;
-		_renderer.__worldAlpha = 1 / _camera.canvas.__worldAlpha;
-		_renderer.__worldTransform.copyFrom(_camera.canvas.__renderTransform);
-		_renderer.__worldTransform.invert();
-		_renderer.__worldColorTransform.__copyFrom(_camera.canvas.__worldColorTransform);
-		_renderer.__worldColorTransform.__invert();
-		_renderer.__setRenderTarget(_currentBitmap);
-
-		var context = _renderer.__context3D;
-		var cacheRTT = context.__state.renderToTexture;
-		var cacheRTTDepthStencil = context.__state.renderToTextureDepthStencil;
-		var cacheRTTAntiAlias = context.__state.renderToTextureAntiAlias;
-		var cacheRTTSurfaceSelector = context.__state.renderToTextureSurfaceSelector;
-
-		context.setRenderToTexture(_currentBitmap.getTexture(context), true);
-		context.clear(0, 0, 0, 0);
-		_renderer.__render(_camera.canvas);
-
-		if (cacheRTT != null)
+		if (FlxG.renderer.method == OPENGL)
 		{
-			context.setRenderToTexture(cacheRTT, cacheRTTDepthStencil, cacheRTTAntiAlias, cacheRTTSurfaceSelector);
+			_camera.view.render();
 		}
 		else
 		{
-			context.setRenderToBackBuffer();
+			_camera.view.render();
+			_camera.canvas.__update(false, true);
+
+			_renderer.__cleanup();
+
+			_renderer.setShader(_renderer.__defaultShader);
+			_renderer.__allowSmoothing = antialiasing;
+			_renderer.__pixelRatio = #if openfl_disable_hdpi 1 #else Lib.current.stage.window.scale #end;
+			_renderer.__worldAlpha = 1 / _camera.canvas.__worldAlpha;
+			_renderer.__worldTransform.copyFrom(_camera.canvas.__renderTransform);
+			_renderer.__worldTransform.invert();
+			_renderer.__worldColorTransform.__copyFrom(_camera.canvas.__worldColorTransform);
+			_renderer.__worldColorTransform.__invert();
+			_renderer.__setRenderTarget(_currentBitmap);
+
+			var context = _renderer.__context3D;
+			var cacheRTT = context.__state.renderToTexture;
+			var cacheRTTDepthStencil = context.__state.renderToTextureDepthStencil;
+			var cacheRTTAntiAlias = context.__state.renderToTextureAntiAlias;
+			var cacheRTTSurfaceSelector = context.__state.renderToTextureSurfaceSelector;
+
+			context.setRenderToTexture(_currentBitmap.getTexture(context), true);
+			context.clear(0, 0, 0, 0);
+			_renderer.__render(_camera.canvas);
+
+			if (cacheRTT != null)
+			{
+				context.setRenderToTexture(cacheRTT, cacheRTTDepthStencil, cacheRTTAntiAlias, cacheRTTSurfaceSelector);
+			}
+			else
+			{
+				context.setRenderToBackBuffer();
+			}
 		}
 	}
 

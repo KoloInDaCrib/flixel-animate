@@ -97,10 +97,9 @@ class FilterRenderer
 
 		var masked:Null<BitmapData> = renderToBitmap((cam, mat) ->
 		{
-			cam.pixelPerfectRender = false;
-			frame._drawElements(cam, currentFrame, mat);
-			cam.render();
-			if (cam.canvas.graphics.__bounds != null)
+			frame._drawElements(cam, currentFrame, mat, null, NORMAL, true, null);
+			cam.view.render();
+			if (cam.canvas?.graphics?.__bounds != null)
 				cam.canvas.graphics.__bounds = maskedBounds.copyToFlash(new Rectangle());
 			cam.pixelPerfectRender = true;
 		});
@@ -111,9 +110,10 @@ class FilterRenderer
 
 		var masker:Null<BitmapData> = renderToBitmap((cam, mat) ->
 		{
-			maskerFrame._drawElements(cam, currentFrame, mat);
-			cam.render();
-			cam.canvas.graphics.__bounds = maskerBounds.copyToFlash(new Rectangle());
+			maskerFrame._drawElements(cam, currentFrame, mat, null, NORMAL, true, null);
+			cam.view.render();
+			if (cam.canvas?.graphics?.__bounds != null)
+				cam.canvas.graphics.__bounds = maskerBounds.copyToFlash(new Rectangle());
 		});
 
 		var intersectX = Math.max(maskerBounds.x, maskedBounds.x);
@@ -202,10 +202,19 @@ class FilterRenderer
 		var matrix = matrixPool.get();
 		draw(cam, matrix);
 
-		var bitmap:Null<BitmapData> = renderGfx(gfx);
+		var bitmap:Null<BitmapData> = null;
+		if (FlxG.renderer.method == OPENGL)
+		{
+			bitmap = new BitmapData(Math.ceil(cam.width), Math.ceil(cam.height), true, 0);
+		}
+		else
+		{
+			var gfx = cam.canvas.graphics;
+			var bitmap:Null<BitmapData> = renderGfx(gfx);
+			gfx.clear();
+		}
 
-		cam.clearDrawStack();
-		gfx.clear();
+		cam.view.clear();
 		cameraPool.release(cam);
 		matrixPool.release(matrix);
 
@@ -240,7 +249,7 @@ class FilterRenderer
 
 			mat.setTo(1 / scale.x, 0, 0, 1 / scale.y, 0, 0);
 			draw(cam, mat);
-			cam.render();
+			cam.view.render();
 
 			if (filters != null && filters.length > 0)
 			{
@@ -279,8 +288,18 @@ class FilterRenderer
 				}
 			}
 
-			var gfx = cam.canvas.graphics;
-			var gfxBounds = gfx.__bounds;
+			var gfxBounds:Rectangle;
+			if (FlxG.renderer.method == OPENGL)
+			{
+				gfxBounds = #if flash new Rectangle(); #else Rectangle.__pool.get(); #end
+				gfxBounds.width = cam.width;
+				gfxBounds.height = cam.height;
+			}
+			else
+			{
+				var gfx = cam.canvas.graphics;
+				gfxBounds = gfx.__bounds;
+			}
 			resultFilteredBounds = expandFilterBounds(FlxRect.get().copyFromFlash(gfxBounds), scaledFilters);
 			resultFilteredBounds.copyToFlash(gfxBounds);
 		});
